@@ -99,7 +99,6 @@ namespace {
   constexpr int KnightSafeCheck = 790;
 
 #define S(mg, eg) make_score(mg, eg)
-#define SF ScaleFactor
 
   // MobilityBonus[PieceType-2][attacked] contains bonuses for middle and end game,
   // indexed by piece type and number of attacked squares in the mobility area.
@@ -184,13 +183,7 @@ namespace {
   constexpr Score WeakQueen          = S( 50, 10);
   constexpr Score WeakUnopposedPawn  = S(  5, 25);
 
-  constexpr ScaleFactor fortressScaling[] = {
-    SF(64), SF(64), SF(64), SF(64), SF(64), SF(64), SF(64), SF(64),
-    SF(64), SF(64), SF(64), SF(64), SF(64), SF(64), SF(64), SF(64), SF(64)
-  };
-
 #undef S
-#undef SF
 
   // Evaluation class computes and stores attacks tables and other working data
   template<Tracing T>
@@ -890,10 +883,7 @@ namespace {
     v =  mg_value(score) * int(me->game_phase())
        + eg_value(score) * int(PHASE_MIDGAME - me->game_phase()) * sf / SCALE_FACTOR_NORMAL;
     
-    ScaleFactor sfFortress = fortressScaling[pe->nb_stalled_pawns()];
-    int scaling = 0, plyLimit = 10;
-    v *= sfFortress * pow(1 - std::max(0, pos.rule50_count() - plyLimit) / (100. - plyLimit), scaling / 1024);
-    v /= SCALE_FACTOR_NORMAL;
+    v *= pow(1 - std::max(0, pos.rule50_count() - 10) / (100. - 10), 0.05);
     v /= int(PHASE_MIDGAME);
 
     // In case of tracing add all remaining individual evaluation terms
