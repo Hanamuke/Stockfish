@@ -894,7 +894,7 @@ namespace {
     ScaleFactor sf = scale_factor(eg_value(score));
     v =  mg_value(score) * int(me->game_phase())
        + eg_value(score) * int(PHASE_MIDGAME - me->game_phase()) * sf / SCALE_FACTOR_NORMAL;
-    
+
     int sfFortress = fortressScaling[pe->nb_stalled_pawns()];
     v *= sfFortress * pow(1 - std::max(0, pos.rule50_count() - plyLimit) / (100. - plyLimit), scaling / 1024);
     v /= SCALE_FACTOR_NORMAL;

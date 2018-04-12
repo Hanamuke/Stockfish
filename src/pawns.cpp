@@ -127,7 +127,7 @@ namespace {
         neighbours = ourPawns   & adjacent_files_bb(f);
         phalanx    = neighbours & rank_bb(s);
         supported  = neighbours & rank_bb(s - Up);
-        stalled    = (!lever && (theirPawns & (s + Up))) || (leverPush && !(ourPawns & passed_pawn_mask(Them, s + Up))); 
+        stalled    = (!lever && (theirPawns & (s + Up))) || (leverPush && !phalanx && !(ourPawns & passed_pawn_mask(Them, s))); 
 
         // A pawn is backward when it is behind all pawns of the same color on the
         // adjacent files and cannot be safely advanced.
