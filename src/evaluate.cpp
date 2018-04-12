@@ -184,10 +184,15 @@ namespace {
   constexpr Score WeakQueen          = S( 50, 10);
   constexpr Score WeakUnopposedPawn  = S(  5, 25);
 
-  constexpr ScaleFactor fortressScaling[] = {
+  int fortressScaling[] = {
     SF(64), SF(64), SF(64), SF(64), SF(64), SF(64), SF(64), SF(64),
     SF(64), SF(64), SF(64), SF(64), SF(64), SF(64), SF(64), SF(64), SF(64)
   };
+
+  int scaling = 0;
+  int plyLimit = 0;
+
+  TUNE(SetRange(0,64),fortressScaling, SetRange(0,1024), scaling, SetRange(0,99), plyLimit);
 
 #undef S
 #undef SF
@@ -890,8 +895,7 @@ namespace {
     v =  mg_value(score) * int(me->game_phase())
        + eg_value(score) * int(PHASE_MIDGAME - me->game_phase()) * sf / SCALE_FACTOR_NORMAL;
     
-    ScaleFactor sfFortress = fortressScaling[pe->nb_stalled_pawns()];
-    int scaling = 0, plyLimit = 10;
+    int sfFortress = fortressScaling[pe->nb_stalled_pawns()];
     v *= sfFortress * pow(1 - std::max(0, pos.rule50_count() - plyLimit) / (100. - plyLimit), scaling / 1024);
     v /= SCALE_FACTOR_NORMAL;
     v /= int(PHASE_MIDGAME);
