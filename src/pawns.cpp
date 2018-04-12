@@ -94,7 +94,7 @@ namespace {
     Bitboard b, neighbours, stoppers, doubled, supported, phalanx;
     Bitboard lever, leverPush;
     Square s;
-    bool opposed, backward;
+    bool opposed, backward, stalled;
     Score score = SCORE_ZERO;
     const Square* pl = pos.squares<PAWN>(Us);
 
@@ -127,6 +127,7 @@ namespace {
         neighbours = ourPawns   & adjacent_files_bb(f);
         phalanx    = neighbours & rank_bb(s);
         supported  = neighbours & rank_bb(s - Up);
+        stalled    = (!lever && (theirPawns & (s + Up))) || (leverPush && !(ourPawns & passed_pawn_mask(Them, s + Up))); 
 
         // A pawn is backward when it is behind all pawns of the same color on the
         // adjacent files and cannot be safely advanced.
@@ -163,6 +164,9 @@ namespace {
                 if (!more_than_one(theirPawns & PawnAttacks[Us][pop_lsb(&b)]))
                     e->passedPawns[Us] |= s;
         }
+
+        if(stalled)
+	    ++e->nbStalled;
 
         // Score this pawn
         if (supported | phalanx)
@@ -220,6 +224,7 @@ Entry* probe(const Position& pos) {
       return e;
 
   e->key = key;
+  e->nbStalled = 0;
   e->scores[WHITE] = evaluate<WHITE>(pos, e);
   e->scores[BLACK] = evaluate<BLACK>(pos, e);
   e->openFiles = popcount(e->semiopenFiles[WHITE] & e->semiopenFiles[BLACK]);
