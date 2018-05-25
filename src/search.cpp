@@ -351,10 +351,10 @@ void Thread::search() {
           mainThread->bestMoveChanges *= 0.517, mainThread->failedLow = false;
 
       for(size_t i = 0; i < multiPV; ++i){
-          aspirationScores[i] = rootMoves[i].score 
-          if(Value(max(abs(rootMoves[i].score), abs(rootMoves[i].previousScore))) < VALUE_KNOWN_WIN){
-              aspirationScores[i] += rootMoves[i].score - rootMoves[i].previousScore) / 2;
-              aspirationScores[i] = min(VALUE_KNOWN_WIN - 1, max(-VALUE_KNOWN_WIN + 1, aspirationScores[i]));
+          aspirationScores[i] = rootMoves[i].score;
+          if(Value(std::max(std::abs(rootMoves[i].score), std::abs(rootMoves[i].previousScore))) < VALUE_KNOWN_WIN){
+              aspirationScores[i] += (rootMoves[i].score - rootMoves[i].previousScore) / 2;
+              aspirationScores[i] = std::min(VALUE_KNOWN_WIN - 1, std::max(-VALUE_KNOWN_WIN + 1, aspirationScores[i]));
           }
       }
 
