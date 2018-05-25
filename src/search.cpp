@@ -379,7 +379,7 @@ void Thread::search() {
               int dct = ct + 88 * previousScore / (abs(previousScore) + 200);
 
               //Add some aspiration variation for SMP
-              previousScore += 2 * (((idx + 1) % 9) / 2) * (2 * (idx % 2) - 1);
+              previousScore += 3 * (((idx) % 8) / 2) * (2 * (idx % 2) - 1);
 
               delta = Value(18);
               alpha = std::max(previousScore - delta,-VALUE_INFINITE);
