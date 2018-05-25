@@ -291,6 +291,7 @@ void Thread::search() {
 
   Stack stack[MAX_PLY+7], *ss = stack+4; // To reference from (ss-4) to (ss+2)
   Value bestValue, alpha, beta, delta;
+  std::vector<Value> aspirationScores;
   Move  lastBestMove = MOVE_NONE;
   Depth lastBestMoveDepth = DEPTH_ZERO;
   MainThread* mainThread = (this == Threads.main() ? Threads.main() : nullptr);
@@ -316,6 +317,7 @@ void Thread::search() {
       multiPV = std::max(multiPV, (size_t)4);
 
   multiPV = std::min(multiPV, rootMoves.size());
+  aspirationScores.resize(multiPV);
 
   int ct = int(Options["Contempt"]) * PawnValueEg / 100; // From centipawns
 
@@ -350,6 +352,9 @@ void Thread::search() {
 
       // Save the last iteration's scores before first PV line is searched and
       // all the move scores except the (new) PV are set to -VALUE_INFINITE.
+      for(size_t i = 0; i < multiPV; ++i)
+          aspirationScores[i] = rootMoves[i].score 
+                              + (rootMoves[i].score - rootMoves[i].previousScore) / 2;
       for (RootMove& rm : rootMoves)
           rm.previousScore = rm.score;
 
@@ -373,13 +378,12 @@ void Thread::search() {
           // Reset aspiration window starting size
           if (rootDepth >= 5 * ONE_PLY)
           {
-              Value previousScore = rootMoves[PVIdx].previousScore;
               delta = Value(18);
-              alpha = std::max(previousScore - delta,-VALUE_INFINITE);
-              beta  = std::min(previousScore + delta, VALUE_INFINITE);
+              alpha = std::max(aspirationScores[PVIdx] - delta,-VALUE_INFINITE);
+              beta  = std::min(aspirationScores[PVIdx] + delta, VALUE_INFINITE);
 
               // Adjust contempt based on root move's previousScore (dynamic contempt)
-              int dct = ct + 88 * previousScore / (abs(previousScore) + 200);
+              int dct = ct + 88 * aspirationScores[PVIdx] / (abs(aspirationScores[PVIdx]) + 200);
 
               contempt = (us == WHITE ?  make_score(dct, dct / 2)
                                       : -make_score(dct, dct / 2));
