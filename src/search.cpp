@@ -23,6 +23,7 @@
 #include <cmath>
 #include <cstring>   // For std::memset
 #include <iostream>
+#include <list>
 #include <sstream>
 
 #include "evaluate.h"
@@ -291,6 +292,7 @@ void Thread::search() {
 
   Stack stack[MAX_PLY+7], *ss = stack+4; // To reference from (ss-4) to (ss+2)
   Value bestValue, alpha, beta, delta;
+  std::vector<std::list<Value>> previousValues;
   Move  lastBestMove = MOVE_NONE;
   Depth lastBestMoveDepth = DEPTH_ZERO;
   MainThread* mainThread = (this == Threads.main() ? Threads.main() : nullptr);
@@ -316,6 +318,7 @@ void Thread::search() {
       multiPV = std::max(multiPV, (size_t)4);
 
   multiPV = std::min(multiPV, rootMoves.size());
+  previousValues.resize(multiPV);
 
   int ct = int(Options["Contempt"]) * PawnValueEg / 100; // From centipawns
 
@@ -373,13 +376,18 @@ void Thread::search() {
           // Reset aspiration window starting size
           if (rootDepth >= 5 * ONE_PLY)
           {
-              Value previousScore = rootMoves[PVIdx].previousScore;
+              Value aspirationScore = VALUE_ZERO;
+              double denum = 0, i = rootDepth + 1.;
+              for(Value v : previousValues[PVIdx])
+                aspirationScore += log(i) * (int)v, denum += (int)(log(i--) * (int)v) / (double)v;
+              aspirationScore /= denum;
+
               delta = Value(18);
-              alpha = std::max(previousScore - delta,-VALUE_INFINITE);
-              beta  = std::min(previousScore + delta, VALUE_INFINITE);
+              alpha = std::max(aspirationScore - delta,-VALUE_INFINITE);
+              beta  = std::min(aspirationScore + delta, VALUE_INFINITE);
 
               // Adjust contempt based on root move's previousScore (dynamic contempt)
-              int dct = ct + 88 * previousScore / (abs(previousScore) + 200);
+              int dct = ct + 88 * aspirationScore / (abs(aspirationScore) + 200);
 
               contempt = (us == WHITE ?  make_score(dct, dct / 2)
                                       : -make_score(dct, dct / 2));
@@ -439,6 +447,10 @@ void Thread::search() {
 
           // Sort the PV lines searched so far and update the GUI
           std::stable_sort(rootMoves.begin() + PVFirst, rootMoves.begin() + PVIdx + 1);
+
+          while(previousValues[PVIdx].size() >= 5)
+            previousValues[PVIdx].pop_back();
+          previousValues[PVIdx].push_front(rootMoves[PVIdx].score);
 
           if (    mainThread
               && (Threads.stop || PVIdx + 1 == multiPV || Time.elapsed() > 3000))
