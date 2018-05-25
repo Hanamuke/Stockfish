@@ -374,12 +374,16 @@ void Thread::search() {
           if (rootDepth >= 5 * ONE_PLY)
           {
               Value previousScore = rootMoves[PVIdx].previousScore;
-              delta = Value(18);
-              alpha = std::max(previousScore - delta,-VALUE_INFINITE);
-              beta  = std::min(previousScore + delta, VALUE_INFINITE);
 
               // Adjust contempt based on root move's previousScore (dynamic contempt)
               int dct = ct + 88 * previousScore / (abs(previousScore) + 200);
+
+              //Add some aspiration variation for SMP
+              previousScore += 2 * (((idx + 1) % 9) / 2) * (2 * (idx % 2) - 1);
+
+              delta = Value(18);
+              alpha = std::max(previousScore - delta,-VALUE_INFINITE);
+              beta  = std::min(previousScore + delta, VALUE_INFINITE);
 
               contempt = (us == WHITE ?  make_score(dct, dct / 2)
                                       : -make_score(dct, dct / 2));
