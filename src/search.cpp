@@ -350,11 +350,16 @@ void Thread::search() {
       if (mainThread)
           mainThread->bestMoveChanges *= 0.517, mainThread->failedLow = false;
 
+      for(size_t i = 0; i < multiPV; ++i){
+          aspirationScores[i] = rootMoves[i].score 
+          if(Value(max(abs(rootMoves[i].score), abs(rootMoves[i].previousScore))) < VALUE_KNOWN_WIN){
+              aspirationScores[i] += rootMoves[i].score - rootMoves[i].previousScore) / 2;
+              aspirationScores[i] = min(VALUE_KNOWN_WIN - 1, max(-VALUE_KNOWN_WIN + 1, aspirationScores[i]));
+          }
+      }
+
       // Save the last iteration's scores before first PV line is searched and
       // all the move scores except the (new) PV are set to -VALUE_INFINITE.
-      for(size_t i = 0; i < multiPV; ++i)
-          aspirationScores[i] = rootMoves[i].score 
-                              + (rootMoves[i].score - rootMoves[i].previousScore) / 2;
       for (RootMove& rm : rootMoves)
           rm.previousScore = rm.score;
 
