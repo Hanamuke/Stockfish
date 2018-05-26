@@ -581,7 +581,8 @@ namespace {
 
         // Check if there exists a move which draws by repetition, or an alternative
         // earlier move to this position.
-        if (alpha < VALUE_DRAW
+        if (pos.rule50_count() >= 3
+            && alpha < VALUE_DRAW
             && pos.has_game_cycle(ss->ply))
         {
             alpha = VALUE_DRAW;
