@@ -377,12 +377,6 @@ void Thread::search() {
               delta = Value(18);
               alpha = std::max(previousScore - delta,-VALUE_INFINITE);
               beta  = std::min(previousScore + delta, VALUE_INFINITE);
-
-              // Adjust contempt based on root move's previousScore (dynamic contempt)
-              int dct = ct + 88 * previousScore / (abs(previousScore) + 200);
-
-              contempt = (us == WHITE ?  make_score(dct, dct / 2)
-                                      : -make_score(dct, dct / 2));
           }
 
           // Start with a small aspiration window and, in the case of a fail
@@ -390,6 +384,12 @@ void Thread::search() {
           // high/low anymore.
           while (true)
           {
+              // Adjust contempt based on root move's previousScore (dynamic contempt)
+              int base = (alpha + beta)/2;
+              int dct = ct + 88 * base / (abs(base) + 200);
+              contempt = (us == WHITE ?  make_score(dct, dct / 2)
+                                      : -make_score(dct, dct / 2));
+
               bestValue = ::search<PV>(rootPos, ss, alpha, beta, rootDepth, false);
 
               // Bring the best move to the front. It is critical that sorting
