@@ -562,7 +562,7 @@ namespace {
 
     if (!rootNode)
     {
-        // Step 2. Check for aborted search and immediate draw
+        // Step 2. Check for aborted search or maximum ply reached
         if (   Threads.stop.load(std::memory_order_relaxed)
             || ss->ply >= MAX_PLY)
             return (ss->ply >= MAX_PLY && !inCheck) ? evaluate(pos) : VALUE_DRAW;
@@ -579,7 +579,7 @@ namespace {
             return alpha;
 
         // Check if there exists a move which draws by repetition, or an alternative
-        // earlier move to this position.
+        // earlier move to this position, or an immediate draw.
         // assert(!pos.is_draw(ss->ply) || pos.has_game_cycle(ss->ply));
         if (   pos.rule50_count() >= 3
             && pos.has_game_cycle(ss->ply))
@@ -1229,13 +1229,12 @@ moves_loop: // When in check, search starts from here
     inCheck = pos.checkers();
     moveCount = 0;
 
-    // Check for an immediate draw or maximum ply reached
-    if (  (pos.rule50_count() >= 4 && pos.is_draw(ss->ply))
-        || ss->ply >= MAX_PLY)
+    // Check for maximum ply reached
+    if (ss->ply >= MAX_PLY)
         return (ss->ply >= MAX_PLY && !inCheck) ? evaluate(pos) : VALUE_DRAW;
 
     // Check if there exists a move which draws by repetition, or an alternative
-    // earlier move to this position.
+    // earlier move to this position, or an immediate draw.
     // assert(!pos.is_draw(ss->ply) || pos.has_game_cycle(ss->ply));
     if (   pos.rule50_count() >= 3
         && pos.has_game_cycle(ss->ply))
