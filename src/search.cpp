@@ -578,15 +578,6 @@ namespace {
         beta = std::min(mate_in(ss->ply+1), beta);
         if (alpha >= beta)
             return alpha;
-
-        // Check if there exists a move which draws by repetition
-        if (alpha < VALUE_DRAW
-            && pos.cycling_moves(ss->ply, (ss-1)->currentMove, (ss-2)->currentMove, (ss-3)->currentMove))
-        {
-            alpha = VALUE_DRAW;
-            if (alpha >= beta)
-                return alpha;
-        }
     }
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
@@ -856,7 +847,7 @@ moves_loop: // When in check, search starts from here
     pvExact = PvNode && ttHit && tte->bound() == BOUND_EXACT;
 
     // Step 12. Draw pruning, no point in trying a move that offers draw if we're winning, unless it's the only move
-    badDrawMove = alpha > VALUE_DRAW && mp.size() > 1 ?
+    badDrawMove = alpha >= VALUE_DRAW && mp.size() > 1 ?
                pos.offer_draw(ss->ply, (ss-1)->currentMove, (ss-2)->currentMove) : MOVE_NONE;
 
     // Step 13. Loop through all pseudo-legal moves until no moves remain
@@ -1026,7 +1017,7 @@ moves_loop: // When in check, search starts from here
               // castling moves, because they are coded as "king captures rook" and
               // hence break make_move(). (~5 Elo)
               else if (    type_of(move) == NORMAL
-                       && !pos.see_ge(make_move(to_sq(move), from_sq(move))))
+                       && !pos.see_ge(make_reverse_move(move)))
                   r -= 2 * ONE_PLY;
 
               ss->statScore =  thisThread->mainHistory[us][from_to(move)]
@@ -1211,7 +1202,7 @@ moves_loop: // When in check, search starts from here
     StateInfo st;
     TTEntry* tte;
     Key posKey;
-    Move ttMove, move, bestMove;
+    Move ttMove, move, bestMove, badDrawMove;
     Depth ttDepth;
     Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
     bool ttHit, inCheck, givesCheck, evasionPrunable;
@@ -1233,15 +1224,6 @@ moves_loop: // When in check, search starts from here
     if (   pos.is_draw(ss->ply)
         || ss->ply >= MAX_PLY)
         return (ss->ply >= MAX_PLY && !inCheck) ? evaluate(pos) : VALUE_DRAW;
-
-    // Check if there exists a move which draws by repetition
-    if (alpha < VALUE_DRAW
-        && pos.cycling_moves(ss->ply, (ss-1)->currentMove, (ss-2)->currentMove, (ss-3)->currentMove))
-    {
-        alpha = VALUE_DRAW;
-        if (alpha >= beta)
-            return alpha;
-    }
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
@@ -1312,10 +1294,16 @@ moves_loop: // When in check, search starts from here
                                       &pos.this_thread()->captureHistory,
                                       to_sq((ss-1)->currentMove));
 
+    badDrawMove = alpha >= VALUE_DRAW && mp.size() > 1 ?
+               pos.offer_draw(ss->ply, (ss-1)->currentMove, (ss-2)->currentMove) : MOVE_NONE;
+
     // Loop through the moves until no moves remain or a beta cutoff occurs
     while ((move = mp.next_move()) != MOVE_NONE)
     {
       assert(is_ok(move));
+
+      if(move == badDrawMove)
+        continue;
 
       givesCheck = gives_check(pos, move);
 

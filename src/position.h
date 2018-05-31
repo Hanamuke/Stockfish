@@ -152,7 +152,6 @@ public:
   bool is_chess960() const;
   Thread* this_thread() const;
   bool is_draw(int ply) const;
-  bool cycling_moves(int ply, Move pMove, Move ppMove, Move pppMove) const;
   Move offer_draw(int ply, Move pMove, Move ppMove) const;
   bool has_repeated() const;
   int rule50_count() const;
@@ -374,18 +373,6 @@ inline Piece Position::captured_piece() const {
 
 inline Thread* Position::this_thread() const {
   return thisThread;
-}
-
-/// Position::cycling_moves() tests if the position the given
-/// moves led to has a move forming a cycle (repeating)
-
-inline bool Position::cycling_moves(int ply, Move pMove, Move ppMove, Move pppMove) const {
-
-    return st->rule50 >= 3 && st->pliesFromNull >= 3 && ply > 3
-           && from_sq(pppMove) == to_sq(pMove)
-           && to_sq(pppMove) == from_sq(pMove)
-           && !(between_bb(from_sq(ppMove), to_sq(ppMove)) & to_sq(pMove))
-           && st->previous->castlingRights == st->previous->previous->previous->castlingRights;
 }
 
 ///Position::can_offer_draw() returns the move that offers the draw by repetition
