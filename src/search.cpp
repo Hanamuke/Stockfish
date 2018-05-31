@@ -1202,7 +1202,7 @@ moves_loop: // When in check, search starts from here
     StateInfo st;
     TTEntry* tte;
     Key posKey;
-    Move ttMove, move, bestMove, badDrawMove;
+    Move ttMove, move, bestMove;
     Depth ttDepth;
     Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
     bool ttHit, inCheck, givesCheck, evasionPrunable;
@@ -1294,19 +1294,10 @@ moves_loop: // When in check, search starts from here
                                       &pos.this_thread()->captureHistory,
                                       to_sq((ss-1)->currentMove));
 
-    badDrawMove = alpha >= VALUE_DRAW ?
-               pos.offer_draw(ss->ply, (ss-1)->currentMove, (ss-2)->currentMove) : MOVE_NONE;
-
     // Loop through the moves until no moves remain or a beta cutoff occurs
     while ((move = mp.next_move()) != MOVE_NONE)
     {
       assert(is_ok(move));
-
-      if(move == badDrawMove)
-      {
-        bestValue = VALUE_DRAW;
-        continue;
-      }
 
       givesCheck = gives_check(pos, move);
 
