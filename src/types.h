@@ -452,6 +452,10 @@ inline Move make_move(Square from, Square to) {
   return Move((from << 6) + to);
 }
 
+inline Move make_reverse_move(Move m) {
+  return make_move(to_sq(m), from_sq(m));
+}
+
 template<MoveType T>
 constexpr Move make(Square from, Square to, PieceType pt = KNIGHT) {
   return Move(T + ((pt - KNIGHT) << 12) + (from << 6) + to);

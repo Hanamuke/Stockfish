@@ -153,6 +153,7 @@ public:
   Thread* this_thread() const;
   bool is_draw(int ply) const;
   bool cycling_moves(int ply, Move pMove, Move ppMove, Move pppMove) const;
+  Move offer_draw(int ply, Move pMove, Move ppMove) const;
   bool has_repeated() const;
   int rule50_count() const;
   Score psq_score() const;
@@ -385,6 +386,15 @@ inline bool Position::cycling_moves(int ply, Move pMove, Move ppMove, Move pppMo
            && to_sq(pppMove) == from_sq(pMove)
            && !(between_bb(from_sq(ppMove), to_sq(ppMove)) & to_sq(pMove))
            && st->previous->castlingRights == st->previous->previous->previous->castlingRights;
+}
+
+///Position::can_offer_draw() returns the move that offers the draw by repetition
+/// if there is one.
+inline Move Position::offer_draw(int ply, Move pMove, Move ppMove) const {
+  return st->rule50 >= 2 && st->pliesFromNull >= 2 && ply > 2
+         && !(between_bb(from_sq(ppMove), to_sq(ppMove)) & to_sq(pMove))
+         && st->castlingRights == st->previous->previous->castlingRights ?
+         make_reverse_move(ppMove) : MOVE_NONE;
 }
 
 inline void Position::put_piece(Piece pc, Square s) {

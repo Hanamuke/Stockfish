@@ -536,7 +536,7 @@ namespace {
     StateInfo st;
     TTEntry* tte;
     Key posKey;
-    Move ttMove, move, excludedMove, bestMove;
+    Move ttMove, move, excludedMove, bestMove, badDrawMove;
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue;
     bool ttHit, inCheck, givesCheck, improving;
@@ -855,13 +855,17 @@ moves_loop: // When in check, search starts from here
     ttCapture = false;
     pvExact = PvNode && ttHit && tte->bound() == BOUND_EXACT;
 
-    // Step 12. Loop through all pseudo-legal moves until no moves remain
+    // Step 12. Draw pruning, no point in trying a move that offers draw if we're winning, unless it's the only move
+    badDrawMove = alpha > VALUE_DRAW && mp.size() > 1 ?
+               pos.offer_draw(ss->ply, (ss-1)->currentMove, (ss-2)->currentMove) : MOVE_NONE;
+
+    // Step 13. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
     while ((move = mp.next_move(skipQuiets)) != MOVE_NONE)
     {
       assert(is_ok(move));
 
-      if (move == excludedMove)
+      if (move == excludedMove || move == badDrawMove)
           continue;
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
@@ -889,7 +893,7 @@ moves_loop: // When in check, search starts from here
       moveCountPruning =   depth < 16 * ONE_PLY
                         && moveCount >= FutilityMoveCounts[improving][depth / ONE_PLY];
 
-      // Step 13. Extensions (~70 Elo)
+      // Step 14. Extensions (~70 Elo)
 
       // Singular extension search (~60 Elo). If all moves but one fail low on a
       // search of (alpha-s, beta-s), and just one fails high on (alpha, beta),
@@ -921,7 +925,7 @@ moves_loop: // When in check, search starts from here
       // Calculate new depth for this move
       newDepth = depth - ONE_PLY + extension;
 
-      // Step 14. Pruning at shallow depth (~170 Elo)
+      // Step 15. Pruning at shallow depth (~170 Elo)
       if (  !rootNode
           && pos.non_pawn_material(us)
           && bestValue > VALUE_MATED_IN_MAX_PLY)
@@ -980,10 +984,10 @@ moves_loop: // When in check, search starts from here
       ss->currentMove = move;
       ss->contHistory = thisThread->contHistory[movedPiece][to_sq(move)].get();
 
-      // Step 15. Make the move
+      // Step 16. Make the move
       pos.do_move(move, st, givesCheck);
 
-      // Step 16. Reduced depth search (LMR). If the move fails high it will be
+      // Step 17. Reduced depth search (LMR). If the move fails high it will be
       // re-searched at full depth.
       if (    depth >= 3 * ONE_PLY
           &&  moveCount > 1
@@ -1051,7 +1055,7 @@ moves_loop: // When in check, search starts from here
       else
           doFullDepthSearch = !PvNode || moveCount > 1;
 
-      // Step 17. Full depth search when LMR is skipped or fails high
+      // Step 18. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
 
@@ -1066,12 +1070,12 @@ moves_loop: // When in check, search starts from here
           value = -search<PV>(pos, ss+1, -beta, -alpha, newDepth, false);
       }
 
-      // Step 18. Undo move
+      // Step 19. Undo move
       pos.undo_move(move);
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
 
-      // Step 19. Check for a new best move
+      // Step 20. Check for a new best move
       // Finished searching the move. If a stop occurred, the return value of
       // the search cannot be trusted, and we return immediately without
       // updating best move, PV and TT.
@@ -1148,7 +1152,7 @@ moves_loop: // When in check, search starts from here
         return VALUE_DRAW;
     */
 
-    // Step 20. Check for mate and stalemate
+    // Step 21. Check for mate and stalemate
     // All legal moves have been searched and if there are no legal moves, it
     // must be a mate or a stalemate. If we are in a singular extension search then
     // return a fail low score.
