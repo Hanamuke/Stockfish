@@ -846,8 +846,8 @@ moves_loop: // When in check, search starts from here
     ttCapture = false;
     pvExact = PvNode && ttHit && tte->bound() == BOUND_EXACT;
 
-    // Step 12. Draw pruning, no point in trying a move that offers draw if we're winning, unless it's the only move
-    badDrawMove = alpha >= VALUE_DRAW && mp.size() > 1 ?
+    // Step 12. Draw pruning, no point in trying a move that offers draw if we're winning
+    badDrawMove = alpha >= VALUE_DRAW ?
                pos.offer_draw(ss->ply, (ss-1)->currentMove, (ss-2)->currentMove) : MOVE_NONE;
 
     // Step 13. Loop through all pseudo-legal moves until no moves remain
@@ -1151,7 +1151,7 @@ moves_loop: // When in check, search starts from here
     assert(moveCount || !inCheck || excludedMove || !MoveList<LEGAL>(pos).size());
 
     if (!moveCount)
-        bestValue = excludedMove ? alpha
+        bestValue = excludedMove || badDrawMove ? alpha
                    :     inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     else if (bestMove)
     {
@@ -1294,7 +1294,7 @@ moves_loop: // When in check, search starts from here
                                       &pos.this_thread()->captureHistory,
                                       to_sq((ss-1)->currentMove));
 
-    badDrawMove = alpha >= VALUE_DRAW && mp.size() > 1 ?
+    badDrawMove = alpha >= VALUE_DRAW ?
                pos.offer_draw(ss->ply, (ss-1)->currentMove, (ss-2)->currentMove) : MOVE_NONE;
 
     // Loop through the moves until no moves remain or a beta cutoff occurs
@@ -1303,7 +1303,10 @@ moves_loop: // When in check, search starts from here
       assert(is_ok(move));
 
       if(move == badDrawMove)
+      {
+        bestValue = VALUE_DRAW;
         continue;
+      }
 
       givesCheck = gives_check(pos, move);
 

@@ -375,7 +375,7 @@ inline Thread* Position::this_thread() const {
   return thisThread;
 }
 
-///Position::can_offer_draw() returns the move that offers the draw by repetition
+///Position::offer_draw() returns the move that offers the draw by repetition
 /// if there is one.
 inline Move Position::offer_draw(int ply, Move pMove, Move ppMove) const {
   return st->rule50 >= 2 && st->pliesFromNull >= 2 && ply > 2

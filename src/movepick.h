@@ -126,13 +126,12 @@ public:
                                            Move,
                                            Move*);
   Move next_move(bool skipQuiets = false);
-  size_t size() const {return end() - begin();}
 
 private:
   template<PickType T, typename Pred> Move select(Pred);
   template<GenType> void score();
-  ExtMove* begin() const { return cur; }
-  ExtMove* end() const { return endMoves; }
+  ExtMove* begin() { return cur; }
+  ExtMove* end() { return endMoves; }
 
   const Position& pos;
   const ButterflyHistory* mainHistory;
