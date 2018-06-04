@@ -1109,37 +1109,6 @@ bool Position::see_ge(Move m, Value threshold) const {
 }
 
 
-/// Position::is_draw() tests whether the position is drawn by 50-move rule
-/// or by repetition. It does not detect stalemates.
-
-bool Position::is_draw(int ply) const {
-
-  if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
-      return true;
-
-  int end = std::min(st->rule50, st->pliesFromNull);
-
-  if (end < 4)
-    return false;
-
-  StateInfo* stp = st->previous->previous;
-  int cnt = 0;
-
-  for (int i = 4; i <= end; i += 2)
-  {
-      stp = stp->previous->previous;
-
-      // Return a draw score if a position repeats once earlier but strictly
-      // after the root, or repeats twice before or at the root.
-      if (   stp->key == st->key
-          && ++cnt + (ply > i) == 2)
-          return true;
-  }
-
-  return false;
-}
-
-
 // Position::has_repeated() tests whether there has been at least one repetition
 // of positions since the last capture or pawn move.
 
@@ -1172,14 +1141,14 @@ bool Position::has_repeated() const {
 /// Position::has_game_cycle() tests if the position has a move which draws by repetition,
 /// or an earlier position has a move that directly reaches the current position.
 
-bool Position::has_game_cycle(int ply) const {
+Move Position::has_game_cycle(int ply) const {
 
   int j;
 
   int end = std::min(st->rule50, st->pliesFromNull);
 
   if (end < 3)
-    return false;
+    return MOVE_NONE;
 
   Key originalKey = st->key;
   StateInfo* stp = st->previous;
@@ -1204,7 +1173,7 @@ bool Position::has_game_cycle(int ply) const {
                   move = make_move(s2, s1);
 
               if (ply > i)
-                  return true;
+                  return move;
 
               // For repetitions before or at the root, require one more
               StateInfo* next_stp = stp;
@@ -1212,12 +1181,12 @@ bool Position::has_game_cycle(int ply) const {
               {
                   next_stp = next_stp->previous->previous;
                   if (next_stp->key == stp->key)
-                     return true;
+                     return move;
               }
           }
       }
   }
-  return false;
+  return MOVE_NONE;
 }
 
 

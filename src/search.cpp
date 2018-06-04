@@ -536,7 +536,7 @@ namespace {
     StateInfo st;
     TTEntry* tte;
     Key posKey;
-    Move ttMove, move, excludedMove, bestMove;
+    Move ttMove, move, excludedMove, bestMove, drawMove;
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue;
     bool ttHit, inCheck, givesCheck, improving;
@@ -564,7 +564,6 @@ namespace {
     {
         // Step 2. Check for aborted search and immediate draw
         if (   Threads.stop.load(std::memory_order_relaxed)
-            || pos.is_draw(ss->ply)
             || ss->ply >= MAX_PLY)
             return (ss->ply >= MAX_PLY && !inCheck) ? evaluate(pos) : VALUE_DRAW;
 
@@ -578,18 +577,20 @@ namespace {
         beta = std::min(mate_in(ss->ply+1), beta);
         if (alpha >= beta)
             return alpha;
-
-        // Check if there exists a move which draws by repetition, or an alternative
-        // earlier move to this position.
-        if (   pos.rule50_count() >= 3
-            && alpha < VALUE_DRAW
-            && pos.has_game_cycle(ss->ply))
-        {
-            alpha = VALUE_DRAW;
-            if (alpha >= beta)
-                return alpha;
-        }
     }
+
+    // Check if there exists a move which draws by repetition, or an alternative
+    // earlier move to this position
+    if ((drawMove = pos.has_game_cycle(ss->ply)) && alpha < VALUE_DRAW)
+    {
+        alpha = VALUE_DRAW;
+        if (alpha >= beta)
+            return alpha;
+    }
+
+    //Check for 50 moves rule draw
+    if(pos.rule50_count() > 99 && (!pos.checkers() || MoveList<LEGAL>(pos).size()))
+        return VALUE_DRAW;
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
@@ -863,7 +864,7 @@ moves_loop: // When in check, search starts from here
     {
       assert(is_ok(move));
 
-      if (move == excludedMove)
+      if (move == excludedMove || move == drawMove)
           continue;
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
@@ -1155,11 +1156,11 @@ moves_loop: // When in check, search starts from here
     // must be a mate or a stalemate. If we are in a singular extension search then
     // return a fail low score.
 
-    assert(moveCount || !inCheck || excludedMove || !MoveList<LEGAL>(pos).size());
+    assert(moveCount || !inCheck || excludedMove || drawMove || !MoveList<LEGAL>(pos).size());
 
     if (!moveCount)
-        bestValue = excludedMove ? alpha
-                   :     inCheck ? mated_in(ss->ply) : VALUE_DRAW;
+        bestValue = excludedMove || drawMove ? alpha
+                   :                 inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     else if (bestMove)
     {
         // Quiet best move: update move sorting heuristics
@@ -1210,7 +1211,7 @@ moves_loop: // When in check, search starts from here
     StateInfo st;
     TTEntry* tte;
     Key posKey;
-    Move ttMove, move, bestMove;
+    Move ttMove, move, bestMove, drawMove;
     Depth ttDepth;
     Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
     bool ttHit, inCheck, givesCheck, evasionPrunable;
@@ -1228,10 +1229,21 @@ moves_loop: // When in check, search starts from here
     inCheck = pos.checkers();
     moveCount = 0;
 
-    // Check for an immediate draw or maximum ply reached
-    if (   pos.is_draw(ss->ply)
-        || ss->ply >= MAX_PLY)
-        return (ss->ply >= MAX_PLY && !inCheck) ? evaluate(pos) : VALUE_DRAW;
+    // Check for maximum ply reached
+    if (ss->ply >= MAX_PLY)
+        return inCheck ? VALUE_DRAW : evaluate(pos);
+
+    //Check for move that draws by reptition
+    if((drawMove = pos.has_game_cycle(ss->ply)) && alpha < VALUE_DRAW)
+    {
+        alpha = VALUE_DRAW;
+        if(alpha >= beta)
+            return alpha;
+    }
+
+    //Check for 50 moves rule draw.
+    if(pos.rule50_count() > 99 && (!pos.checkers() || MoveList<LEGAL>(pos).size()))
+            return VALUE_DRAW;
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
@@ -1306,6 +1318,12 @@ moves_loop: // When in check, search starts from here
     while ((move = mp.next_move()) != MOVE_NONE)
     {
       assert(is_ok(move));
+
+      if(move == drawMove)
+      {
+          bestValue = std::max(bestValue, VALUE_DRAW);
+          continue;
+      }
 
       givesCheck = gives_check(pos, move);
 
