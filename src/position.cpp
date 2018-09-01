@@ -1007,7 +1007,7 @@ Key Position::key_after(Move m) const {
   if (captured)
       k ^= Zobrist::psq[captured][to];
 
-  return k ^ Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
+  return (k ^ Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from]) + (((captured || type_of(pc) == PAWN || type_of(m) != NORMAL) ? 0 : st->rule50 + 1) << 16);
 }
 
 
