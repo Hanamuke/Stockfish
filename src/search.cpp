@@ -541,17 +541,6 @@ namespace {
     constexpr bool PvNode = NT == PV;
     const bool rootNode = PvNode && ss->ply == 0;
 
-    // Check if we have an upcoming move which draws by repetition, or
-    // if the opponent had an alternative move earlier to this position.
-    if (alpha < VALUE_DRAW
-        && !rootNode
-        && pos.cycling_moves(ss->ply, (ss-1)->currentMove, (ss-2)->currentMove, (ss-3)->currentMove))
-    {
-        alpha = value_draw(depth, pos.this_thread());
-        if (alpha >= beta)
-            return alpha;
-    }
-
     // Dive into quiescence search when the depth reaches zero
     if (depth < ONE_PLY)
         return qsearch<NT>(pos, ss, alpha, beta);
@@ -593,6 +582,17 @@ namespace {
     if (!rootNode)
     {
         // Step 2. Check for aborted search and immediate draw
+
+        // Check if we have a move which draws by repetition
+        if (alpha < VALUE_DRAW
+            && !rootNode
+            && pos.cycling_moves(ss->ply, (ss-1)->currentMove, (ss-2)->currentMove, (ss-3)->currentMove))
+        {
+            alpha = value_draw(depth, pos.this_thread());
+           if (alpha >= beta)
+               return alpha;
+        }
+
         if (   Threads.stop.load(std::memory_order_relaxed)
             || pos.is_draw(ss->ply)
             || ss->ply >= MAX_PLY)
