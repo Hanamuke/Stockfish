@@ -586,7 +586,7 @@ namespace {
         // Step 2. Check for aborted search and immediate draw
 
         // Check if we have a move which draws by repetition
-        if (alpha < value_draw(depth, pos.this_thread())
+        if (alpha < VALUE_DRAW
             && !rootNode
             && pos.cycling_moves(ss->ply, (ss-1)->currentMove, (ss-2)->currentMove, (ss-3)->currentMove))
         {
@@ -1250,6 +1250,15 @@ moves_loop: // When in check, search starts from here
     ss->continuationHistory = &thisThread->continuationHistory[NO_PIECE][0];
     inCheck = pos.checkers();
     moveCount = 0;
+
+    // Check if we have a move which draws by repetition
+    if (alpha < VALUE_DRAW
+        && pos.cycling_moves(ss->ply, (ss-1)->currentMove, (ss-2)->currentMove, (ss-3)->currentMove))
+    {
+        alpha = value_draw(depth, pos.this_thread());
+        if (alpha >= beta)
+            return alpha;
+    }
 
     // Check for an immediate draw or maximum ply reached
     if (   pos.is_draw(ss->ply)
