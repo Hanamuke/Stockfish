@@ -586,7 +586,7 @@ namespace {
         // Step 2. Check for aborted search and immediate draw
 
         // Check if we have a move which draws by repetition
-        if (alpha < VALUE_DRAW
+        if (alpha < value_draw(depth, pos.this_thread())
             && !rootNode
             && pos.cycling_moves(ss->ply, (ss-1)->currentMove, (ss-2)->currentMove, (ss-3)->currentMove))
         {
