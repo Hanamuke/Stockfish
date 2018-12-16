@@ -544,7 +544,7 @@ namespace {
     // Check if we have an upcoming move which draws by repetition, or
     // if the opponent had an alternative move earlier to this position.
     if (   pos.rule50_count() >= 3
-        && alpha < VALUE_DRAW
+        && alpha < value_draw(depth, pos.this_thread())
         && !rootNode
         && pos.has_game_cycle(ss->ply))
     {
@@ -1175,7 +1175,7 @@ moves_loop: // When in check, search starts from here
 
     if (!moveCount)
         bestValue = excludedMove ? alpha
-                   :     inCheck ? mated_in(ss->ply) : VALUE_DRAW;
+                   :     inCheck ? mated_in(ss->ply) : value_draw(depth, pos.this_thread());
     else if (bestMove)
     {
         // Quiet best move: update move sorting heuristics
@@ -1252,7 +1252,7 @@ moves_loop: // When in check, search starts from here
     // Check for an immediate draw or maximum ply reached
     if (   pos.is_draw(ss->ply)
         || ss->ply >= MAX_PLY)
-        return (ss->ply >= MAX_PLY && !inCheck) ? evaluate(pos) : VALUE_DRAW;
+        return (ss->ply >= MAX_PLY && !inCheck) ? evaluate(pos) : value_draw(depth, pos.this_thread());
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
