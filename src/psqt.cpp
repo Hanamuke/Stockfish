@@ -27,6 +27,12 @@ Value PieceValue[PHASE_NB][PIECE_NB] = {
   { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg }
 };
 
+Value OriginalPieceValue[PHASE_NB][PIECE_NB] = {
+  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
+  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg }
+};
+
+
 namespace PSQT {
 
 #define S(mg, eg) make_score(mg, eg)
@@ -115,7 +121,7 @@ void init() {
       PieceValue[MG][~pc] = PieceValue[MG][pc];
       PieceValue[EG][~pc] = PieceValue[EG][pc];
 
-      Score score = make_score(PieceValue[MG][pc], PieceValue[EG][pc]);
+      Score score = make_score(OriginalPieceValue[MG][pc], OriginalPieceValue[EG][pc]);
 
       for (Square s = SQ_A1; s <= SQ_H8; ++s)
       {
@@ -128,3 +134,5 @@ void init() {
 }
 
 } // namespace PSQT
+
+TUNE(PieceValue, PSQT::init);
