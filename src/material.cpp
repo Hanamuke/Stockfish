@@ -27,6 +27,10 @@
 
 using namespace std;
 
+
+Value MidgameLimit  = Value(15258), EndgameLimit  = Value(3915);
+TUNE(EndgameLimit, MidgameLimit);
+
 namespace {
 
   // Polynomial material imbalance parameters

@@ -34,9 +34,6 @@ Value OriginalPieceValue[PHASE_NB][PIECE_NB] = {
   { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg }
 };
 
-Value MidgameLimit  = Value(15258), EndgameLimit  = Value(3915);
-
-
 namespace PSQT {
 
 #define S(mg, eg) make_score(mg, eg)
@@ -140,4 +137,3 @@ void init() {
 } // namespace PSQT
 
 TUNE(PieceValue, PSQT::init);
-TUNE(EndgameLimit, MidgameLimit)
