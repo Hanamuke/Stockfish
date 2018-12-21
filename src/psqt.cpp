@@ -28,8 +28,8 @@ Value PieceValue[PHASE_NB][PIECE_NB] = {
 };
 
 Value OriginalPieceValue[PHASE_NB][PIECE_NB] = {
-  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
-  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg }
+  { VALUE_ZERO, Value(136), Value(782), Value(830), Value(1289), Value(2529) },
+  { VALUE_ZERO, Value(208), Value(865), Value(918), Value(1378), Value(2687) }
 };
 
 namespace PSQT {
