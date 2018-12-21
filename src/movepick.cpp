@@ -150,7 +150,7 @@ Move MovePicker::select(Pred filter) {
 }
 
 
-int A = -55;
+int A = -57;
 TUNE(A);
 /// MovePicker::next_move() is the most important method of the MovePicker class. It
 /// returns a new pseudo legal move every time it is called until there are no more

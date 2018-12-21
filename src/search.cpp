@@ -37,7 +37,7 @@
 #include "uci.h"
 #include "syzygy/tbprobe.h"
 
-int B=-29, C=-208, D=216, E=48, F=128;
+int B=-29, C=-206, D=216, E=48, F=134;
 TUNE(B,C,D,E,F);
 
 namespace Search {

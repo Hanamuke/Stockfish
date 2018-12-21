@@ -22,15 +22,19 @@
 
 #include "types.h"
 
+#define v(x) Value(x)
+
 Value PieceValue[PHASE_NB][PIECE_NB] = {
-  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
-  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg }
+  { VALUE_ZERO, v(136), v(721), v(774), v(1302), v(2469) },
+  { VALUE_ZERO, v(225), v(836), v(972), v(1316), v(2710) }
 };
 
 Value OriginalPieceValue[PHASE_NB][PIECE_NB] = {
   { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
   { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg }
 };
+
+Value MidgameLimit  = Value(15258), EndgameLimit  = Value(3915);
 
 
 namespace PSQT {
@@ -136,3 +140,4 @@ void init() {
 } // namespace PSQT
 
 TUNE(PieceValue, PSQT::init);
+TUNE(EndgameLimit, MidgameLimit)
