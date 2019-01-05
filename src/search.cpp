@@ -905,12 +905,6 @@ moves_loop: // When in check, search starts from here
 
       if (move == excludedMove)
           continue;
-      if (move == drawMove && drawValue > bestValue)
-      {
-        value = drawValue;
-        captureOrPromotion = pos.capture_or_promotion(move);
-        goto pvUpdate;
-      }
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
       // Move List. As a consequence any illegal move is also skipped. In MultiPV
@@ -929,8 +923,14 @@ moves_loop: // When in check, search starts from here
       if (PvNode)
           (ss+1)->pv = nullptr;
 
-      extension = DEPTH_ZERO;
       captureOrPromotion = pos.capture_or_promotion(move);
+      if (move == drawMove)
+      {
+        value = drawValue;
+        goto pvUpdate;
+      }
+
+      extension = DEPTH_ZERO;
       movedPiece = pos.moved_piece(move);
       givesCheck = gives_check(pos, move);
 
