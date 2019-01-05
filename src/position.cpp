@@ -1176,8 +1176,9 @@ bool Position::has_repeated() const {
 
 /// Position::has_game_cycle() tests if the position has a move which draws by repetition,
 /// or an earlier position has a move that directly reaches the current position.
+/// If there is one, repeatingMove will be set to the repeating move.
 
-bool Position::has_game_cycle(int ply) const {
+bool Position::has_game_cycle(int ply, Move* repeatingMove) const {
 
   int j;
 
@@ -1209,7 +1210,10 @@ bool Position::has_game_cycle(int ply) const {
                   move = make_move(s2, s1);
 
               if (ply > i)
-                  return true;
+              {
+                *repeatingMove = move;
+                return true;
+              }
 
               // For repetitions before or at the root, require one more
               StateInfo* next_stp = stp;
@@ -1217,7 +1221,10 @@ bool Position::has_game_cycle(int ply) const {
               {
                   next_stp = next_stp->previous->previous;
                   if (next_stp->key == stp->key)
-                     return true;
+                  {
+                    *repeatingMove = move;
+                    return true;
+                  }
               }
           }
       }

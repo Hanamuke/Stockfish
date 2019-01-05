@@ -548,16 +548,20 @@ namespace {
     constexpr bool PvNode = NT == PV;
     const bool rootNode = PvNode && ss->ply == 0;
 
+    Move drawMove = MOVE_NONE;
+    Value drawValue = -VALUE_INFINITE;
+
     // Check if we have an upcoming move which draws by repetition, or
     // if the opponent had an alternative move earlier to this position.
     if (   pos.rule50_count() >= 3
-        && alpha < VALUE_DRAW
+        && alpha < (drawValue = value_draw(depth, pos.this_thread()))
         && !rootNode
-        && pos.has_game_cycle(ss->ply))
+        && pos.has_game_cycle(ss->ply, &drawMove))
     {
-        alpha = value_draw(depth, pos.this_thread());
+        alpha = drawValue;
         if (alpha >= beta)
             return alpha;
+
     }
 
     // Dive into quiescence search when the depth reaches zero
@@ -901,6 +905,12 @@ moves_loop: // When in check, search starts from here
 
       if (move == excludedMove)
           continue;
+      if (move == drawMove && drawValue > bestValue)
+      {
+        value = drawValue;
+        captureOrPromotion = pos.capture_or_promotion(move);
+        goto pvUpdate;
+      }
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
       // Move List. As a consequence any illegal move is also skipped. In MultiPV
@@ -1134,6 +1144,8 @@ moves_loop: // When in check, search starts from here
               // move position in the list is preserved - just the PV is pushed up.
               rm.score = -VALUE_INFINITE;
       }
+
+      pvUpdate:
 
       if (value > bestValue)
       {

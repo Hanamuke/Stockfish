@@ -151,7 +151,7 @@ public:
   bool is_chess960() const;
   Thread* this_thread() const;
   bool is_draw(int ply) const;
-  bool has_game_cycle(int ply) const;
+  bool has_game_cycle(int ply, Move* repeatingMove) const;
   bool has_repeated() const;
   int rule50_count() const;
   Score psq_score() const;
