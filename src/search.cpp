@@ -576,7 +576,7 @@ namespace {
     Key posKey;
     Move ttMove, move, excludedMove, bestMove;
     Depth extension, newDepth;
-    Value bestValue, value, ttValue, eval, maxValue, pureStaticEval;
+    Value bestValue, value, ttValue, eval, maxValue;
     bool ttHit, inCheck, givesCheck, improving;
     bool captureOrPromotion, doFullDepthSearch, moveCountPruning, skipQuiets, ttCapture, pvExact;
     Piece movedPiece;
@@ -711,7 +711,7 @@ namespace {
                 {
                     tte->save(posKey, value_to_tt(value, ss->ply), b,
                               std::min(DEPTH_MAX - ONE_PLY, depth + 6 * ONE_PLY),
-                              MOVE_NONE, VALUE_NONE);
+                              MOVE_NONE);
 
                     return value;
                 }
@@ -730,16 +730,16 @@ namespace {
     // Step 6. Static evaluation of the position
     if (inCheck)
     {
-        ss->staticEval = eval = pureStaticEval = VALUE_NONE;
+        ss->value = eval = VALUE_NONE;
         improving = false;
         goto moves_loop;  // Skip early pruning when in check
     }
     else if (ttHit)
     {
         // Never assume anything on values stored in TT
-        ss->staticEval = eval = pureStaticEval = tte->eval();
+        ss->value = eval = tte->value();
         if (eval == VALUE_NONE)
-            ss->staticEval = eval = pureStaticEval = evaluate(pos);
+            ss->value = eval = evaluate(pos);
 
         // Can ttValue be used as a better position evaluation?
         if (    ttValue != VALUE_NONE
@@ -754,23 +754,21 @@ namespace {
             int bonus = p > 0 ? (-p - 2500) / 512 :
                         p < 0 ? (-p + 2500) / 512 : 0;
 
-            pureStaticEval = evaluate(pos);
-            ss->staticEval = eval = pureStaticEval + bonus;
+            ss->value = eval = evaluate(pos) + bonus;
         }
         else
-            ss->staticEval = eval = pureStaticEval = -(ss-1)->staticEval + 2 * Eval::Tempo;
+            ss->value = eval = -(ss-1)->value + 2 * Eval::Tempo;
 
-        tte->save(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, pureStaticEval);
+        tte->save(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE);
     }
 
     // Step 7. Razoring (~2 Elo)
     if (   !rootNode // The required rootNode PV handling is not available in qsearch
-        &&  depth < 2 * ONE_PLY
-        &&  eval <= alpha - RazorMargin)
+        &&  eval <= alpha - depth * RazorMargin/2)
         return qsearch<NT>(pos, ss, alpha, beta);
 
-    improving =   ss->staticEval >= (ss-2)->staticEval
-               || (ss-2)->staticEval == VALUE_NONE;
+    improving =   ss->value >= (ss-2)->value
+               || (ss-2)->value == VALUE_NONE;
 
     // Step 8. Futility pruning: child node (~30 Elo)
     if (   !PvNode
@@ -784,7 +782,7 @@ namespace {
         && (ss-1)->currentMove != MOVE_NULL
         && (ss-1)->statScore < 23200
         &&  eval >= beta
-        &&  pureStaticEval >= beta - 36 * depth / ONE_PLY + 225
+        &&  eval >= beta - 36 * depth / ONE_PLY + 225
         && !excludedMove
         &&  pos.non_pawn_material(us)
         && (ss->ply >= thisThread->nmpMinPly || us != thisThread->nmpColor))
@@ -836,7 +834,7 @@ namespace {
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
         Value raisedBeta = std::min(beta + 216 - 48 * improving, VALUE_INFINITE);
-        MovePicker mp(pos, ttMove, raisedBeta - ss->staticEval, &thisThread->captureHistory);
+        MovePicker mp(pos, ttMove, raisedBeta - ss->value, &thisThread->captureHistory);
         int probCutCount = 0;
 
         while (  (move = mp.next_move()) != MOVE_NONE
@@ -998,7 +996,7 @@ moves_loop: // When in check, search starts from here
               // Futility pruning: parent node (~2 Elo)
               if (   lmrDepth < 7
                   && !inCheck
-                  && ss->staticEval + 256 + 200 * lmrDepth <= alpha)
+                  && ss->value + 256 + 200 * lmrDepth <= alpha)
                   continue;
 
               // Prune moves with negative SEE (~10 Elo)
@@ -1011,7 +1009,7 @@ moves_loop: // When in check, search starts from here
       }
 
       // Speculative prefetch as early as possible
-      prefetch(TT.first_entry(pos.key_after(move)));
+      prefetch(TT.entry(pos.key_after(move)));
 
       // Check for legality just before making the move
       if (!rootNode && !pos.legal(move))
@@ -1220,7 +1218,7 @@ moves_loop: // When in check, search starts from here
         tte->save(posKey, value_to_tt(bestValue, ss->ply),
                   bestValue >= beta ? BOUND_LOWER :
                   PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
-                  depth, bestMove, pureStaticEval);
+                  depth, bestMove);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
@@ -1293,7 +1291,7 @@ moves_loop: // When in check, search starts from here
     // Evaluate the position statically
     if (inCheck)
     {
-        ss->staticEval = VALUE_NONE;
+        ss->value = VALUE_NONE;
         bestValue = futilityBase = -VALUE_INFINITE;
     }
     else
@@ -1301,8 +1299,8 @@ moves_loop: // When in check, search starts from here
         if (ttHit)
         {
             // Never assume anything on values stored in TT
-            if ((ss->staticEval = bestValue = tte->eval()) == VALUE_NONE)
-                ss->staticEval = bestValue = evaluate(pos);
+            if ((ss->value = bestValue = tte->value()) == VALUE_NONE)
+                ss->value = bestValue = evaluate(pos);
 
             // Can ttValue be used as a better position evaluation?
             if (    ttValue != VALUE_NONE
@@ -1310,16 +1308,16 @@ moves_loop: // When in check, search starts from here
                 bestValue = ttValue;
         }
         else
-            ss->staticEval = bestValue =
+            ss->value = bestValue =
             (ss-1)->currentMove != MOVE_NULL ? evaluate(pos)
-                                             : -(ss-1)->staticEval + 2 * Eval::Tempo;
+                                             : -(ss-1)->value + 2 * Eval::Tempo;
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
         {
             if (!ttHit)
                 tte->save(posKey, value_to_tt(bestValue, ss->ply), BOUND_LOWER,
-                          DEPTH_NONE, MOVE_NONE, ss->staticEval);
+                          DEPTH_NONE, MOVE_NONE);
 
             return bestValue;
         }
@@ -1385,7 +1383,7 @@ moves_loop: // When in check, search starts from here
           continue;
 
       // Speculative prefetch as early as possible
-      prefetch(TT.first_entry(pos.key_after(move)));
+      prefetch(TT.entry(pos.key_after(move)));
 
       // Check for legality just before making the move
       if (!pos.legal(move))
@@ -1432,7 +1430,7 @@ moves_loop: // When in check, search starts from here
     tte->save(posKey, value_to_tt(bestValue, ss->ply),
               bestValue >= beta ? BOUND_LOWER :
               PvNode && bestValue > oldAlpha  ? BOUND_EXACT : BOUND_UPPER,
-              ttDepth, bestMove, ss->staticEval);
+              ttDepth, bestMove);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
