@@ -62,6 +62,13 @@ private:
 class TranspositionTable {
 
   static constexpr int CacheLineSize = 64;
+  static constexpr int ClusterSize = 4;
+
+  struct Cluster {
+    TTEntry entry[ClusterSize];
+  };
+
+  static_assert(CacheLineSize % sizeof(Cluster) == 0, "Cluster size incorrect");
 
 public:
  ~TranspositionTable() { free(mem); }
@@ -72,15 +79,15 @@ public:
   void clear();
 
   // The 32 lowest order bits of the key are used to get the index of the cluster
-  TTEntry* entry(const Key key) const {
-    return &table[(uint32_t(key) * uint64_t(entryCount)) >> 32];
-}
+  TTEntry* first_entry(const Key key) const {
+    return &table[(uint32_t(key) * uint64_t(clusterCount)) >> 32].entry[0];
+  }
 
 private:
   friend struct TTEntry;
 
-  size_t entryCount;
-  TTEntry* table;
+  size_t clusterCount;
+  Cluster* table;
   void* mem;
   uint8_t generation8; // Size must be not bigger than TTEntry::genBound8
 };

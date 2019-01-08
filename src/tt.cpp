@@ -60,11 +60,10 @@ void TranspositionTable::resize(size_t mbSize) {
 
   Threads.main()->wait_for_search_finished();
 
-  assert(CacheLineSize % sizeof(TTEntry) == 0);
-  entryCount = mbSize * 1024 * 1024 / sizeof(TTEntry);
+  clusterCount = mbSize * 1024 * 1024 / sizeof(Cluster);
 
   free(mem);
-  mem = malloc(entryCount * sizeof(TTEntry) + CacheLineSize - 1);
+  mem = malloc(clusterCount * sizeof(Cluster) + CacheLineSize - 1);
 
   if (!mem)
   {
@@ -73,7 +72,7 @@ void TranspositionTable::resize(size_t mbSize) {
       exit(EXIT_FAILURE);
   }
 
-  table = (TTEntry*)((uintptr_t(mem) + CacheLineSize - 1) & ~(CacheLineSize - 1));
+  table = (Cluster*)((uintptr_t(mem) + CacheLineSize - 1) & ~(CacheLineSize - 1));
   clear();
 }
 
@@ -94,12 +93,12 @@ void TranspositionTable::clear() {
               WinProcGroup::bindThisThread(idx);
 
           // Each thread will zero its part of the hash table
-          const size_t stride = entryCount / Options["Threads"],
+          const size_t stride = clusterCount / Options["Threads"],
                        start  = stride * idx,
                        len    = idx != Options["Threads"] - 1 ?
-                                stride : entryCount - start;
+                                stride : clusterCount - start;
 
-          std::memset(&table[start], 0, len * sizeof(TTEntry));
+          std::memset(&table[start], 0, len * sizeof(Cluster));
       });
   }
 
@@ -116,15 +115,29 @@ void TranspositionTable::clear() {
 
 TTEntry* TranspositionTable::probe(const Key key, bool& found) const {
 
-  TTEntry* const tte = entry(key);
+  TTEntry* const tte = first_entry(key);
   const uint16_t key16 = key >> 48;  // Use the high 16 bits as key inside the cluster
-      if (!tte->key16 || tte->key16 == key16)
-      {
-          tte->genBound8 = uint8_t(generation8 | tte->bound()); // Refresh
 
-          return found = (bool)tte->key16, tte;
+  for (int i = 0; i < ClusterSize; ++i)
+      if (!tte[i].key16 || tte[i].key16 == key16)
+      {
+          tte[i].genBound8 = uint8_t(generation8 | tte[i].bound()); // Refresh
+
+          return found = (bool)tte[i].key16, &tte[i];
       }
-  return found = false, tte;
+
+  // Find an entry to be replaced according to the replacement strategy
+  TTEntry* replace = tte;
+  for (int i = 1; i < ClusterSize; ++i)
+      // Due to our packed storage format for generation and its cyclic
+      // nature we add 259 (256 is the modulus plus 3 to keep the lowest
+      // two bound bits from affecting the result) to calculate the entry
+      // age correctly even after generation8 overflows into the next cycle.
+      if (  replace->depth8 - ((259 + generation8 - replace->genBound8) & 0xFC) * 2
+          >   tte[i].depth8 - ((259 + generation8 -   tte[i].genBound8) & 0xFC) * 2)
+          replace = &tte[i];
+
+  return found = false, replace;
 }
 
 
@@ -134,8 +147,9 @@ TTEntry* TranspositionTable::probe(const Key key, bool& found) const {
 int TranspositionTable::hashfull() const {
 
   int cnt = 0;
-  for (int i = 0; i < 1000; ++i)
-          cnt += (table[i].genBound8 & 0xFC) == generation8;
+  for (int i = 0; i < 1000 / ClusterSize; ++i)
+      for (int j = 0; j < ClusterSize; ++j)
+          cnt += (table[i].entry[j].genBound8 & 0xFC) == generation8;
 
-  return cnt;
+  return cnt * 1000 / (ClusterSize * (1000 / ClusterSize));
 }
