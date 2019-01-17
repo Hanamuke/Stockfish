@@ -56,6 +56,10 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
+int A = 100, B1, C1=200, B2,C2=200;
+TUNE(SetRange(-2000, 2000), A, B1, C1, B2, C2);
+
+
 namespace {
 
   // Different node types, used as a template parameter
@@ -499,7 +503,12 @@ void Thread::search() {
           && !Threads.stop
           && !Threads.stopOnPonderhit)
       {
-          double fallingEval = (306 + 119 * failedLow + 6 * (mainThread->previousScore - bestValue)) / 581.0;
+          double normalized_change = (double)(mainThread->previousScore - bestValue)/(1 + bestValue + A);
+          double fallingEval;
+          if(normalized_change>0)
+            fallingEval = (B1*normalized_change*normalized_change + C1*normalized_change)/1024.0 + 1;
+          else
+            fallingEval = (B2*normalized_change*normalized_change + C2*normalized_change)/1024.0 + 1;
           fallingEval        = std::max(0.5, std::min(1.5, fallingEval));
 
           // If the bestMove is stable over several iterations, reduce time accordingly
