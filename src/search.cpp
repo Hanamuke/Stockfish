@@ -57,7 +57,7 @@ using Eval::evaluate;
 using namespace Search;
 
 int A = 100, B1, C1=200, B2,C2=200;
-TUNE(SetRange(-2000, 2000), A, B1, C1, B2, C2);
+TUNE(SetRange(1, 2000), A, SetRange(-2000, 2000),B1, C1, B2, C2);
 
 
 namespace {
@@ -503,7 +503,7 @@ void Thread::search() {
           && !Threads.stop
           && !Threads.stopOnPonderhit)
       {
-          double normalized_change = (double)(mainThread->previousScore - bestValue)/(1 + bestValue + A);
+          double normalized_change = (double)(mainThread->previousScore - bestValue)/(bestValue + A);
           double fallingEval;
           if(normalized_change>0)
             fallingEval = (B1*normalized_change*normalized_change + C1*normalized_change)/1024.0 + 1;
