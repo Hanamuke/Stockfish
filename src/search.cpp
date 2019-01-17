@@ -56,8 +56,8 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
-int A = 128, C1=110, C2=335,B=200;
-TUNE(C1, C2, B, SetRange(1, 300), A);
+int A = 128, C1=110, C2=335,B=200, D1=1024, D2=1024;
+TUNE(SetRange(0,1000), C1, C2, B, SetRange(1, 300), A, SetRange(500,1500), D1, D2);
 
 
 namespace {
@@ -506,9 +506,9 @@ void Thread::search() {
           double normalized_change = (double)(mainThread->previousScore - bestValue)/(bestValue + A);
           double fallingEval;
           if(normalized_change>0)
-            fallingEval = (C1*normalized_change + B*failedLow)/1024.0 + 1;
+            fallingEval = (C1*normalized_change + B*failedLow + D1)/1024.0;
           else
-            fallingEval = (C2*normalized_change)/1024.0 + 1;
+            fallingEval = (C2*normalized_change + D2)/1024.0 + 1;
           fallingEval        = std::max(0.5, std::min(1.5, fallingEval));
 
           // If the bestMove is stable over several iterations, reduce time accordingly
