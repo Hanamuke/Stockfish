@@ -632,6 +632,12 @@ namespace {
 
     b = pe->passed_pawns(Us);
 
+    if (!(b&(b-1))
+        &&pos.opposite_bishops()
+        && pos.non_pawn_material(WHITE) == BishopValueMg
+        && pos.non_pawn_material(BLACK) == BishopValueMg)
+        return score;
+
     while (b)
     {
         Square s = pop_lsb(&b);
