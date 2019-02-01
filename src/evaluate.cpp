@@ -632,12 +632,6 @@ namespace {
 
     b = pe->passed_pawns(Us);
 
-    if (!(b&(b-1))
-        &&pos.opposite_bishops()
-        && pos.non_pawn_material(WHITE) == BishopValueMg
-        && pos.non_pawn_material(BLACK) == BishopValueMg)
-        return -PSQT::psq[PAWN][pop_lsb(&b)];
-
     while (b)
     {
         Square s = pop_lsb(&b);
@@ -701,6 +695,12 @@ namespace {
 
         score += bonus + PassedFile[file_of(s)];
     }
+
+    if (!(b&(b-1))
+        &&pos.opposite_bishops()
+        && pos.non_pawn_material(WHITE) == BishopValueMg
+        && pos.non_pawn_material(BLACK) == BishopValueMg)
+        score = score / 2;
 
     if (T)
         Trace::add(PASSED, Us, score);
