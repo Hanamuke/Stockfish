@@ -939,6 +939,7 @@ make_v:
 /// evaluation of the position from the point of view of the side to move.
 
 Value Eval::evaluate(const Position& pos, bool forceNNUE) {
+
   bool classical = !Eval::useNNUE
                 || (!forceNNUE && abs(eg_value(pos.psq_score())) * 16 > NNUEThreshold1 * (16 + pos.rule50_count()));
   Value v = classical ? Evaluation<NO_TRACE>(pos).value()
